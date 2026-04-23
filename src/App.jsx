@@ -180,6 +180,40 @@ const supabaseAnonKey = "sb_publishable_7SiQ4eq7-gUorVG2OC0qxg_wKfSM3CW";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 
+const KITCHEN_PROFILE_STORAGE_KEY = "kitchen_saved_profile_v1";
+
+function readSavedKitchenProfile() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(KITCHEN_PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.hub_id) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveKitchenProfile(profile) {
+  if (typeof window === "undefined" || !profile?.hub_id) return;
+  const payload = {
+    id: profile.id || null,
+    email: profile.email || "",
+    full_name: profile.full_name || "",
+    hub_id: profile.hub_id || "",
+    branch_name: profile.branch_name || "",
+    role: profile.role || "",
+  };
+  window.localStorage.setItem(KITCHEN_PROFILE_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function clearSavedKitchenProfile() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(KITCHEN_PROFILE_STORAGE_KEY);
+}
+
+
 function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -210,43 +244,137 @@ function LoginScreen() {
       style={{
         minHeight: "100vh",
         background: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "Tahoma, Arial, sans-serif",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
       }}
     >
-      <Card style={{ width: "100%", maxWidth: 430 }}>
-        <CardContent style={{ padding: 24 }}>
-          <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>
+      <Card
+        style={{
+          width: "100%",
+          maxWidth: 470,
+          border: "1px solid #dbe4f0",
+          boxShadow: "0 18px 40px rgba(15, 23, 42, 0.10)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: 10,
+            background: "linear-gradient(90deg, #0f172a, #334155, #0f172a)",
+          }}
+        />
+
+        <CardContent style={{ padding: 28 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 12px",
+              borderRadius: 999,
+              background: "#f1f5f9",
+              border: "1px solid #cbd5e1",
+              color: "#334155",
+              fontSize: 12,
+              fontWeight: 800,
+              marginBottom: 14,
+            }}
+          >
+            BÁNH TRÁNG TRỘN - GÁNH HÀNG RONG
+          </div>
+
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 900,
+              marginBottom: 8,
+              color: "#0f172a",
+              lineHeight: 1.15,
+            }}
+          >
             Đăng nhập chi nhánh
           </div>
-          <div style={{ color: "#64748b", marginBottom: 18, fontSize: 14 }}>
-            Nhập đúng tài khoản, hệ thống sẽ tự vào đúng chi nhánh của bạn.
+
+          <div
+            style={{
+              color: "#475569",
+              marginBottom: 16,
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            Đây là <b>phần mềm theo dõi và điều phối đơn</b>, phục vụ vận hành nội
+            bộ cho hệ thống <b>Bánh Tráng Trộn - Gánh Hàng Rong</b>.
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: 12,
+              marginBottom: 18,
+              color: "#334155",
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}
+          >
+            Hệ thống sẽ tự nhận diện tài khoản và đưa bạn vào đúng chi nhánh đã
+            được phân quyền.
+            <br />
+            <b>Bản quyền thuộc về Bánh Tráng Trộn - Gánh Hàng Rong.</b>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
             <div>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Email</div>
+              <div
+                style={{
+                  fontWeight: 800,
+                  marginBottom: 6,
+                  color: "#0f172a",
+                }}
+              >
+                Email
+              </div>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="lhp@ghr.vn"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                }}
                 required
               />
             </div>
 
             <div>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Mật khẩu</div>
+              <div
+                style={{
+                  fontWeight: 800,
+                  marginBottom: 6,
+                  color: "#0f172a",
+                }}
+              >
+                Mật khẩu
+              </div>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Nhập mật khẩu"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                }}
                 required
               />
             </div>
@@ -255,7 +383,7 @@ function LoginScreen() {
               <div
                 style={{
                   border: "1px solid #fecaca",
-                  background: "#fef2f2",
+                  background: "#fff1f2",
                   color: "#b91c1c",
                   borderRadius: 12,
                   padding: 10,
@@ -266,9 +394,25 @@ function LoginScreen() {
               </div>
             ) : null}
 
-            <Button type="submit" disabled={submitting} style={{ width: "100%" }}>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: 12,
+                padding: "13px 16px",
+                fontWeight: 800,
+                fontSize: 15,
+                cursor: submitting ? "not-allowed" : "pointer",
+                opacity: submitting ? 0.7 : 1,
+                background: "#0f172a",
+                color: "#ffffff",
+                boxShadow: "0 8px 18px rgba(15, 23, 42, 0.18)",
+              }}
+            >
               {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
-            </Button>
+            </button>
           </form>
         </CardContent>
       </Card>
@@ -282,19 +426,38 @@ function BootScreen({ text = "Đang tải..." }) {
       style={{
         minHeight: "100vh",
         background: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "Tahoma, Arial, sans-serif",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
       }}
     >
-      <Card style={{ maxWidth: 420, width: "100%" }}>
+      <Card
+        style={{
+          maxWidth: 420,
+          width: "100%",
+          border: "1px solid #dbe4f0",
+          boxShadow: "0 18px 40px rgba(15, 23, 42, 0.10)",
+        }}
+      >
         <CardContent style={{ padding: 24, textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 900,
+              marginBottom: 8,
+              color: "#0f172a",
+            }}
+          >
             Bảng bếp realtime
           </div>
-          <div style={{ color: "#64748b" }}>{text}</div>
+          <div style={{ color: "#475569", marginBottom: 10 }}>{text}</div>
+          <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>
+            Phần mềm theo dõi và điều phối đơn
+            <br />
+            Bản quyền thuộc về Bánh Tráng Trộn - Gánh Hàng Rong
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -1504,7 +1667,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
         style={{
           minHeight: "100vh",
           background: "#f8fafc",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "Tahoma, Arial, sans-serif",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1543,7 +1706,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
           height: "100vh",
           overflow: "hidden",
           background: "#f8fafc",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "Tahoma, Arial, sans-serif",
           padding: 8,
           boxSizing: "border-box",
           position: "relative",
@@ -2693,6 +2856,9 @@ function KitchenBoard({ currentProfile, onLogout }) {
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [rememberedProfile, setRememberedProfile] = useState(() =>
+    readSavedKitchenProfile()
+  );
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -2723,7 +2889,9 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession || null);
-      setProfile(null);
+      if (!nextSession) {
+        setProfile(null);
+      }
     });
 
     return () => {
@@ -2750,10 +2918,9 @@ export default function App() {
           .from("profiles")
           .select("*")
           .eq("id", session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
-
         if (!mounted) return;
 
         if (!data?.hub_id) {
@@ -2761,6 +2928,8 @@ export default function App() {
           setProfile(null);
         } else {
           setProfile(data);
+          setRememberedProfile(data);
+          saveKitchenProfile(data);
         }
       } catch (err) {
         if (mounted) {
@@ -2780,30 +2949,40 @@ export default function App() {
   }, [session?.user?.id]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    clearSavedKitchenProfile();
+    setRememberedProfile(null);
     setProfile(null);
     setSession(null);
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+  }
+
+  const activeProfile = profile?.hub_id ? profile : rememberedProfile;
+
+  if (activeProfile?.hub_id && (authLoading || !session || profileLoading)) {
+    return <KitchenBoard currentProfile={activeProfile} onLogout={handleLogout} />;
   }
 
   if (authLoading) {
     return <BootScreen text="Đang kiểm tra đăng nhập..." />;
   }
 
-  if (!session) {
+  if (!session && !activeProfile) {
     return <LoginScreen />;
   }
 
-  if (profileLoading) {
+  if (profileLoading && !activeProfile) {
     return <BootScreen text="Đang tải thông tin chi nhánh..." />;
   }
 
-  if (authError && !profile) {
+  if (authError && !activeProfile) {
     return (
       <div
         style={{
           minHeight: "100vh",
           background: "#f8fafc",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "Tahoma, Arial, sans-serif",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -2838,9 +3017,9 @@ export default function App() {
     );
   }
 
-  if (!profile?.hub_id) {
+  if (!activeProfile?.hub_id) {
     return <BootScreen text="Đang chờ gán chi nhánh..." />;
   }
 
-  return <KitchenBoard currentProfile={profile} onLogout={handleLogout} />;
+  return <KitchenBoard currentProfile={activeProfile} onLogout={handleLogout} />;
 }
