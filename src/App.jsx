@@ -566,6 +566,151 @@ function platformTheme(platform) {
   };
 }
 
+
+function platformVisual(platform, kitchenDone = false) {
+  const value = String(platform || "").toLowerCase();
+
+  if (kitchenDone) {
+    return {
+      accent: "#64748b",
+      accentDark: "#334155",
+      activeBg: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+      softBg: "#f1f5f9",
+      ring: "rgba(100,116,139,0.18)",
+      shadow: "rgba(100,116,139,0.16)",
+      text: "#334155",
+      label: "ĐANG CHỌN",
+    };
+  }
+
+  if (value.includes("xanh_ngon") || value.includes("xanh-ngon") || value.includes("xanh ngon")) {
+    return {
+      accent: "#0d9488",
+      accentDark: "#0f766e",
+      activeBg: "linear-gradient(180deg, #f0fdfa 0%, #ccfbf1 100%)",
+      softBg: "#ccfbf1",
+      ring: "rgba(13,148,136,0.20)",
+      shadow: "rgba(13,148,136,0.18)",
+      text: "#134e4a",
+      label: "ĐANG CHỌN",
+    };
+  }
+
+  if (value.includes("grab")) {
+    return {
+      accent: "#16a34a",
+      accentDark: "#15803d",
+      activeBg: "linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)",
+      softBg: "#dcfce7",
+      ring: "rgba(22,163,74,0.20)",
+      shadow: "rgba(22,163,74,0.18)",
+      text: "#14532d",
+      label: "ĐANG CHỌN",
+    };
+  }
+
+  if (value.includes("shopee")) {
+    return {
+      accent: "#ea580c",
+      accentDark: "#c2410c",
+      activeBg: "linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%)",
+      softBg: "#ffedd5",
+      ring: "rgba(234,88,12,0.20)",
+      shadow: "rgba(234,88,12,0.18)",
+      text: "#7c2d12",
+      label: "ĐANG CHỌN",
+    };
+  }
+
+  return {
+    accent: "#475569",
+    accentDark: "#334155",
+    activeBg: "linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)",
+    softBg: "#f1f5f9",
+    ring: "rgba(71,85,105,0.18)",
+    shadow: "rgba(71,85,105,0.14)",
+    text: "#0f172a",
+    label: "ĐANG CHỌN",
+  };
+}
+
+function activeOrderCardStyle(order, activeTheme, flags) {
+  const { isActive, isHighlightedByGroup, isNew, kitchenDone } = flags;
+  const visual = platformVisual(order?.nen_tang, kitchenDone);
+
+  if (isActive) {
+    return {
+      ...activeTheme.style,
+      position: "relative",
+      overflow: "hidden",
+      opacity: kitchenDone ? 0.92 : 1,
+      border: `2.5px solid ${visual.accent}`,
+      background: visual.activeBg,
+      boxShadow: `0 0 0 3px ${visual.ring}, 0 14px 28px ${visual.shadow}`,
+      transform: "translateY(-1px)",
+      transition: "all 0.16s ease",
+    };
+  }
+
+  return {
+    ...activeTheme.style,
+    position: "relative",
+    overflow: "hidden",
+    opacity: kitchenDone ? 0.9 : 1,
+    border: isHighlightedByGroup
+      ? "2.5px solid #0ea5e9"
+      : isNew && !kitchenDone
+      ? "2.5px solid #f59e0b"
+      : activeTheme.style.border,
+    boxShadow: isHighlightedByGroup
+      ? "0 8px 18px rgba(14,165,233,0.14)"
+      : isNew && !kitchenDone
+      ? "0 8px 18px rgba(245,158,11,0.14)"
+      : "0 1px 3px rgba(0,0,0,0.08)",
+    transition: "all 0.16s ease",
+  };
+}
+
+function ActiveOrderRibbon({ platform, kitchenDone }) {
+  const visual = platformVisual(platform, kitchenDone);
+
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 7,
+          background: visual.accent,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: 18,
+          top: 10,
+          display: "inline-flex",
+          alignItems: "center",
+          height: 24,
+          padding: "0 11px",
+          borderRadius: 999,
+          background: visual.accent,
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 900,
+          letterSpacing: 0.4,
+          boxShadow: `0 6px 14px ${visual.shadow}`,
+          zIndex: 2,
+        }}
+      >
+        {visual.label}
+      </div>
+    </>
+  );
+}
+
 function normalizeStatus(status) {
   if (!status) return "UNKNOWN";
   return String(status).toUpperCase();
@@ -2145,6 +2290,8 @@ function KitchenBoard({ currentProfile, onLogout }) {
                       : theme;
 
                     const activeTheme = completedTheme;
+                    const isActiveOrder = String(activeOrderId) === String(order.id);
+                    const activeVisual = platformVisual(order.nen_tang, kitchenDone);
 
                     return (
                       <Card
@@ -2153,56 +2300,18 @@ function KitchenBoard({ currentProfile, onLogout }) {
                           if (node) orderRefs.current[order.id] = node;
                           else delete orderRefs.current[order.id];
                         }}
-                        style={{
-                          ...activeTheme.style,
-                          opacity: kitchenDone ? 0.9 : 1,
-
-                          border:
-                            String(activeOrderId) === String(order.id)
-                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
-                                ? "3px solid #16a34a"
-                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
-                                ? "3px solid #dc2626"
-                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
-                                ? "3px solid #0f766e"
-                                : "3px solid #475569"
-                              : isHighlightedByGroup
-                              ? "2px solid #0ea5e9"
-                              : isNew && !kitchenDone
-                              ? "2px solid #f59e0b"
-                              : activeTheme.style.border,
-
-                          background:
-                            String(activeOrderId) === String(order.id)
-                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
-                                ? "#dcfce7"
-                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
-                                ? "#fee2e2"
-                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
-                                ? "#ccfbf1"
-                                : "#f1f5f9"
-                              : activeTheme.style.background,
-
-                          boxShadow:
-                            String(activeOrderId) === String(order.id)
-                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
-                                ? "inset 6px 0 0 #16a34a, 0 8px 18px rgba(22,163,74,0.16)"
-                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
-                                ? "inset 6px 0 0 #dc2626, 0 8px 18px rgba(220,38,38,0.16)"
-                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
-                                ? "inset 6px 0 0 #0f766e, 0 8px 18px rgba(15,118,110,0.16)"
-                                : "inset 6px 0 0 #475569, 0 8px 18px rgba(71,85,105,0.14)"
-                              : isHighlightedByGroup
-                              ? "0 6px 14px rgba(14,165,233,0.12)"
-                              : "0 1px 3px rgba(0,0,0,0.08)",
-
-                          transform: "none",
-                          transition:
-                            "border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease",
-                        }}
+                        style={activeOrderCardStyle(order, activeTheme, {
+                          isActive: String(activeOrderId) === String(order.id),
+                          isHighlightedByGroup,
+                          isNew,
+                          kitchenDone,
+                        })}
                       >
                         <CardHeader
-                          style={{ cursor: "pointer", padding: 12 }}
+                          style={{
+                            cursor: "pointer",
+                            padding: String(activeOrderId) === String(order.id) ? "42px 14px 12px 18px" : 12,
+                          }}
                           onClick={() => {
                             const nextActiveOrderId =
                               activeOrderId === order.id ? null : order.id;
@@ -2214,32 +2323,12 @@ function KitchenBoard({ currentProfile, onLogout }) {
                           }}
                         >
                           {String(activeOrderId) === String(order.id) ? (
-                            <div
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                marginBottom: 8,
-                                marginLeft: 8,
-                                padding: "5px 10px",
-                                borderRadius: 999,
-                                background: String(order.nen_tang || "").toLowerCase().includes("grab")
-                                  ? "#16a34a"
-                                  : String(order.nen_tang || "").toLowerCase().includes("shopee")
-                                  ? "#dc2626"
-                                  : String(order.nen_tang || "").toLowerCase().includes("xanh")
-                                  ? "#0f766e"
-                                  : "#475569",
-                                color: "#fff",
-                                fontSize: 12,
-                                fontWeight: 800,
-                                letterSpacing: 0.2,
-                                boxShadow: "0 3px 8px rgba(0,0,0,0.14)",
-                              }}
-                            >
-                              ĐANG CHỌN ĐƠN NÀY
-                            </div>
+                            <ActiveOrderRibbon
+                              platform={order.nen_tang}
+                              kitchenDone={kitchenDone}
+                            />
                           ) : null}
+
 
                           <div
                             style={{
@@ -2249,7 +2338,13 @@ function KitchenBoard({ currentProfile, onLogout }) {
                             }}
                           >
                             <div>
-                              <CardTitle style={{ fontSize: 22 }}>
+                              <CardTitle
+                                style={{
+                                  fontSize: 22,
+                                  color: isActiveOrder ? activeVisual.text : "inherit",
+                                  letterSpacing: isActiveOrder ? 0.2 : 0,
+                                }}
+                              >
                                 {order.ma_noi_bo || order.id}
                               </CardTitle>
                               <div
