@@ -614,6 +614,26 @@ function normalizeDishName(dish) {
   return String(dish?.ten_mon || dish?.name || "Không tên món").trim();
 }
 
+function getDishQuantity(dish) {
+  return Number(dish?.so_luong ?? dish?.quantity ?? 0) || 0;
+}
+
+function getDishStartNumber(dishes, dishIndex) {
+  if (!Array.isArray(dishes)) return 1;
+  let start = 1;
+  for (let i = 0; i < dishIndex; i += 1) {
+    start += getDishQuantity(dishes[i]);
+  }
+  return start;
+}
+
+function formatDishNumberLabel(startNumber, quantity = 1) {
+  const qty = Number(quantity) || 1;
+  if (qty <= 1) return `#${startNumber}`;
+  return `#${startNumber}-#${startNumber + qty - 1}`;
+}
+
+
 function waitingTone(minutes) {
   if (minutes >= 15) return { color: "#dc2626" };
   if (minutes >= 8) return { color: "#d97706" };
@@ -667,6 +687,45 @@ function getOrderProgress(order) {
     0
   );
   return { totalItems, doneItems };
+}
+
+
+function OrderProgressBoxes({ totalItems, doneItems, activeColor = "#16a34a" }) {
+  const total = Math.max(0, Number(totalItems) || 0);
+  const done = Math.max(0, Number(doneItems) || 0);
+
+  if (total <= 0) return null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 4,
+        justifyContent: "flex-end",
+        maxWidth: 122,
+        marginTop: 6,
+      }}
+    >
+      {Array.from({ length: total }).map((_, index) => {
+        const filled = index < done;
+        return (
+          <div
+            key={index}
+            title={`Món ${index + 1}${filled ? " đã xong" : " chưa xong"}`}
+            style={{
+              width: 13,
+              height: 13,
+              borderRadius: 4,
+              border: filled ? `1px solid ${activeColor}` : "1px solid #cbd5e1",
+              background: filled ? activeColor : "#ffffff",
+              boxShadow: filled ? "0 1px 3px rgba(0,0,0,0.16)" : "none",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 function computeOrderState(order, nowTs) {
@@ -753,9 +812,11 @@ function groupDishesFromOrders(orders) {
   pendingOrdersByOldest.forEach((order) => {
     const dishes = Array.isArray(order?.dishes) ? order.dishes : [];
 
-    dishes.forEach((dish) => {
+    dishes.forEach((dish, dishIndex) => {
       const name = normalizeDishName(dish);
       const quantity = Number(dish?.so_luong ?? dish?.quantity ?? 0) || 0;
+      const dishStartNumber = getDishStartNumber(dishes, dishIndex);
+      const dishNumberLabel = formatDishNumberLabel(dishStartNumber, quantity);
       const options = Array.isArray(dish?.tuy_chon) ? dish.tuy_chon : [];
       const note = dish?.ghi_chu || "";
       const key = `${name}__${options.join("|")}`;
@@ -804,6 +865,8 @@ function groupDishesFromOrders(orders) {
           ),
           platform: order.nen_tang || "",
           text: note,
+          dishNumberLabel,
+          dishStartNumber,
         });
       }
     });
@@ -1444,8 +1507,37 @@ function KitchenBoard({ currentProfile, onLogout }) {
   }, [orders, search, platformFilter, dateFilter, orderStateFilter, now]);
 
   const groupedDishes = useMemo(() => {
-    return groupDishesFromOrders(filteredOrders);
-  }, [filteredOrders]);
+    const normalGroups = groupDishesFromOrders(filteredOrders);
+
+    // Nếu chưa bấm chọn đơn nào: giữ nguyên cách sắp xếp tổng hợp món như cũ
+    if (!activeOrderId) return normalGroups;
+
+    const activeOrder = filteredOrders.find(
+      (order) => String(order.id) === String(activeOrderId)
+    );
+
+    if (!activeOrder) return normalGroups;
+
+    // Lấy đúng thứ tự món còn đang làm trong đơn được chọn
+    const priorityKeys = getPendingDishKeysForOrder(activeOrder);
+    if (!priorityKeys.length) return normalGroups;
+
+    // Món thuộc đơn đang chọn sẽ lên đầu theo đúng thứ tự trong đơn.
+    // Các món còn lại vẫn giữ nguyên thứ tự cũ.
+    return [...normalGroups].sort((a, b) => {
+      const aIndex = priorityKeys.indexOf(a.key);
+      const bIndex = priorityKeys.indexOf(b.key);
+
+      const aInActiveOrder = aIndex !== -1;
+      const bInActiveOrder = bIndex !== -1;
+
+      if (aInActiveOrder && bInActiveOrder) return aIndex - bIndex;
+      if (aInActiveOrder) return -1;
+      if (bInActiveOrder) return 1;
+
+      return 0;
+    });
+  }, [filteredOrders, activeOrderId]);
 
   function setOrderPending(orderId, value) {
     setPendingOrderIds((prev) => ({
@@ -1487,10 +1579,26 @@ function KitchenBoard({ currentProfile, onLogout }) {
 
       container.scrollTo({
         top: Math.max(0, top),
-        behavior: "auto",
+        behavior: "smooth",
       });
     }
   }
+
+  useEffect(() => {
+    if (!activeOrderId) return;
+
+    const activeOrder = filteredOrders.find(
+      (order) => String(order.id) === String(activeOrderId)
+    );
+
+    if (!activeOrder) return;
+
+    const timer = setTimeout(() => {
+      scrollToFirstGroupedDishForOrder(activeOrder);
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [activeOrderId, groupedDishes]);
 
   async function updateDishPortion(orderId, dishIndex, portionIndex, checked, qty) {
     if (pendingOrderIds[orderId]) return;
@@ -2048,14 +2156,49 @@ function KitchenBoard({ currentProfile, onLogout }) {
                         style={{
                           ...activeTheme.style,
                           opacity: kitchenDone ? 0.9 : 1,
-                          borderColor:
-                            activeOrderId === order.id
-                              ? "#8b5cf6"
+
+                          border:
+                            String(activeOrderId) === String(order.id)
+                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
+                                ? "3px solid #16a34a"
+                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
+                                ? "3px solid #dc2626"
+                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
+                                ? "3px solid #0f766e"
+                                : "3px solid #475569"
                               : isHighlightedByGroup
-                              ? "#0ea5e9"
+                              ? "2px solid #0ea5e9"
                               : isNew && !kitchenDone
-                              ? "#f59e0b"
-                              : activeTheme.style.border?.split(" ").pop(),
+                              ? "2px solid #f59e0b"
+                              : activeTheme.style.border,
+
+                          background:
+                            String(activeOrderId) === String(order.id)
+                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
+                                ? "#dcfce7"
+                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
+                                ? "#fee2e2"
+                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
+                                ? "#ccfbf1"
+                                : "#f1f5f9"
+                              : activeTheme.style.background,
+
+                          boxShadow:
+                            String(activeOrderId) === String(order.id)
+                              ? String(order.nen_tang || "").toLowerCase().includes("grab")
+                                ? "inset 6px 0 0 #16a34a, 0 8px 18px rgba(22,163,74,0.16)"
+                                : String(order.nen_tang || "").toLowerCase().includes("shopee")
+                                ? "inset 6px 0 0 #dc2626, 0 8px 18px rgba(220,38,38,0.16)"
+                                : String(order.nen_tang || "").toLowerCase().includes("xanh")
+                                ? "inset 6px 0 0 #0f766e, 0 8px 18px rgba(15,118,110,0.16)"
+                                : "inset 6px 0 0 #475569, 0 8px 18px rgba(71,85,105,0.14)"
+                              : isHighlightedByGroup
+                              ? "0 6px 14px rgba(14,165,233,0.12)"
+                              : "0 1px 3px rgba(0,0,0,0.08)",
+
+                          transform: "none",
+                          transition:
+                            "border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease",
                         }}
                       >
                         <CardHeader
@@ -2068,14 +2211,36 @@ function KitchenBoard({ currentProfile, onLogout }) {
                             if (activeDishKey) setActiveDishKey(null);
 
                             markOrderAsSeen(String(order.id));
-
-                            if (nextActiveOrderId) {
-                              requestAnimationFrame(() => {
-                                scrollToFirstGroupedDishForOrder(order);
-                              });
-                            }
                           }}
                         >
+                          {String(activeOrderId) === String(order.id) ? (
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                marginBottom: 8,
+                                marginLeft: 8,
+                                padding: "5px 10px",
+                                borderRadius: 999,
+                                background: String(order.nen_tang || "").toLowerCase().includes("grab")
+                                  ? "#16a34a"
+                                  : String(order.nen_tang || "").toLowerCase().includes("shopee")
+                                  ? "#dc2626"
+                                  : String(order.nen_tang || "").toLowerCase().includes("xanh")
+                                  ? "#0f766e"
+                                  : "#475569",
+                                color: "#fff",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                letterSpacing: 0.2,
+                                boxShadow: "0 3px 8px rgba(0,0,0,0.14)",
+                              }}
+                            >
+                              ĐANG CHỌN ĐƠN NÀY
+                            </div>
+                          ) : null}
+
                           <div
                             style={{
                               display: "flex",
@@ -2114,13 +2279,30 @@ function KitchenBoard({ currentProfile, onLogout }) {
                               style={{
                                 textAlign: "right",
                                 color: kitchenDone ? "#64748b" : "#475569",
-                                minWidth: 92,
+                                minWidth: 150,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-end",
                               }}
                             >
-                              <div style={{ fontSize: 20 }}>
-                                {doneItems}/{totalItems}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "flex-end",
+                                  gap: 8,
+                                }}
+                              >
+                                <div style={{ fontSize: 20 }}>
+                                  {doneItems}/{totalItems}
+                                </div>
+                                <OrderProgressBoxes
+                                  totalItems={totalItems}
+                                  doneItems={doneItems}
+                                  activeColor={activeTheme.actionStyle?.background || "#16a34a"}
+                                />
                               </div>
-                              <div style={{ fontSize: 12 }}>
+                              <div style={{ fontSize: 12, marginTop: 3 }}>
                                 {allDone ? "Sẵn sàng" : "Đang làm"}
                               </div>
                             </div>
@@ -2197,6 +2379,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                 const qty =
                                   Number(dish?.so_luong ?? dish?.quantity ?? 0) || 0;
                                 const doneList = ensureDoneList(dish);
+                                const dishStartNumber = getDishStartNumber(dishes, index);
 
                                 return Array.from({ length: qty }).map((_, portionIndex) => {
                                   const itemKey = `${buildDishKey(
@@ -2205,6 +2388,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                     index
                                   )}__${portionIndex}`;
                                   const isDone = !!doneList[portionIndex];
+                                  const globalDishNumber = dishStartNumber + portionIndex;
 
                                   return (
                                     <button
@@ -2279,11 +2463,20 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                               </div>
                                               <div
                                                 style={{
-                                                  color: "#94a3b8",
-                                                  fontSize: 11,
+                                                  marginTop: 5,
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 5,
+                                                  color: "#334155",
+                                                  fontSize: 12,
+                                                  fontWeight: 800,
+                                                  background: "#f1f5f9",
+                                                  border: "1px solid #cbd5e1",
+                                                  borderRadius: 999,
+                                                  padding: "3px 8px",
                                                 }}
                                               >
-                                                Phần {portionIndex + 1}
+                                                Món #{globalDishNumber}
                                               </div>
                                             </div>
                                             {isDone ? (
@@ -2432,10 +2625,6 @@ function KitchenBoard({ currentProfile, onLogout }) {
                           if (activeDishKey) setActiveDishKey(null);
 
                           markOrderAsSeen(String(order.id));
-
-                          requestAnimationFrame(() => {
-                            scrollToFirstGroupedDishForOrder(order);
-                          });
                         }}
                         style={{
                           minWidth: 106,
@@ -2812,7 +3001,26 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                         >
                                           {note.orderCode}
                                         </span>
-                                        <span style={{ fontSize: 12 }}>{note.text}</span>
+                                        <span
+                                          style={{
+                                            marginTop: 2,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            borderRadius: 999,
+                                            padding: "4px 8px",
+                                            fontSize: 11,
+                                            fontWeight: 900,
+                                            background: "#fff7ed",
+                                            color: "#9a3412",
+                                            border: "1px solid #fdba74",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          {note.dishNumberLabel || "#?"}
+                                        </span>
+                                        <span style={{ fontSize: 12, lineHeight: 1.35 }}>
+                                          {note.text}
+                                        </span>
                                       </div>
                                     );
                                   })}
