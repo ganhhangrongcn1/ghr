@@ -566,6 +566,72 @@ function platformTheme(platform) {
   };
 }
 
+function crmTagStyle(tag = "") {
+  const text = String(tag || "").toLowerCase();
+
+  if (text.includes("tặng")) {
+    return {
+      background: "#fee2e2",
+      color: "#b91c1c",
+      border: "1px solid #fecaca",
+      fontWeight: 900,
+    };
+  }
+
+  if (text.includes("còn 1")) {
+    return {
+      background: "#ffedd5",
+      color: "#c2410c",
+      border: "1px solid #fed7aa",
+      fontWeight: 900,
+    };
+  }
+
+  if (text.includes("khách quen")) {
+    return {
+      background: "#dcfce7",
+      color: "#166534",
+      border: "1px solid #bbf7d0",
+      fontWeight: 900,
+    };
+  }
+
+  if (text.includes("kim cương")) {
+    return {
+      background: "#e0f2fe",
+      color: "#0369a1",
+      border: "1px solid #bae6fd",
+      fontWeight: 900,
+    };
+  }
+
+  if (text.includes("vàng")) {
+    return {
+      background: "#fef3c7",
+      color: "#92400e",
+      border: "1px solid #fde68a",
+      fontWeight: 900,
+    };
+  }
+
+  if (text.includes("bạc")) {
+    return {
+      background: "#f1f5f9",
+      color: "#475569",
+      border: "1px solid #cbd5e1",
+      fontWeight: 900,
+    };
+  }
+
+  return {
+    background: "#fff7ed",
+    color: "#9a3412",
+    border: "1px solid #fed7aa",
+    fontWeight: 800,
+  };
+}
+
+
 
 function platformVisual(platform, kitchenDone = false) {
   const value = String(platform || "").toLowerCase();
@@ -585,12 +651,12 @@ function platformVisual(platform, kitchenDone = false) {
 
   if (value.includes("xanh_ngon") || value.includes("xanh-ngon") || value.includes("xanh ngon")) {
     return {
-      accent: "#0d9488",
-      accentDark: "#0f766e",
-      activeBg: "linear-gradient(180deg, #f0fdfa 0%, #ccfbf1 100%)",
-      softBg: "#ccfbf1",
-      ring: "rgba(13,148,136,0.20)",
-      shadow: "rgba(13,148,136,0.18)",
+      accent: "#0f766e",
+      accentDark: "#115e59",
+      activeBg: "linear-gradient(180deg, #a7f3d0 0%, #5eead4 100%)",
+      softBg: "#99f6e4",
+      ring: "rgba(15,118,110,0.30)",
+      shadow: "rgba(15,118,110,0.28)",
       text: "#134e4a",
       label: "ĐANG CHỌN",
     };
@@ -598,12 +664,12 @@ function platformVisual(platform, kitchenDone = false) {
 
   if (value.includes("grab")) {
     return {
-      accent: "#16a34a",
-      accentDark: "#15803d",
-      activeBg: "linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)",
-      softBg: "#dcfce7",
-      ring: "rgba(22,163,74,0.20)",
-      shadow: "rgba(22,163,74,0.18)",
+      accent: "#15803d",
+      accentDark: "#166534",
+      activeBg: "linear-gradient(180deg, #bbf7d0 0%, #86efac 100%)",
+      softBg: "#bbf7d0",
+      ring: "rgba(21,128,61,0.30)",
+      shadow: "rgba(21,128,61,0.28)",
       text: "#14532d",
       label: "ĐANG CHỌN",
     };
@@ -611,12 +677,12 @@ function platformVisual(platform, kitchenDone = false) {
 
   if (value.includes("shopee")) {
     return {
-      accent: "#ea580c",
-      accentDark: "#c2410c",
-      activeBg: "linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%)",
-      softBg: "#ffedd5",
-      ring: "rgba(234,88,12,0.20)",
-      shadow: "rgba(234,88,12,0.18)",
+      accent: "#dc2626",
+      accentDark: "#b91c1c",
+      activeBg: "linear-gradient(180deg, #fee2e2 0%, #fdba74 100%)",
+      softBg: "#fed7aa",
+      ring: "rgba(220,38,38,0.30)",
+      shadow: "rgba(220,38,38,0.28)",
       text: "#7c2d12",
       label: "ĐANG CHỌN",
     };
@@ -635,7 +701,14 @@ function platformVisual(platform, kitchenDone = false) {
 }
 
 function activeOrderCardStyle(order, activeTheme, flags) {
-  const { isActive, isHighlightedByGroup, isNew, kitchenDone } = flags;
+  const {
+    isActive,
+    isHighlightedByGroup,
+    isNew,
+    kitchenDone,
+    hasActiveOrder,
+  } = flags;
+
   const visual = platformVisual(order?.nen_tang, kitchenDone);
 
   if (isActive) {
@@ -643,20 +716,31 @@ function activeOrderCardStyle(order, activeTheme, flags) {
       ...activeTheme.style,
       position: "relative",
       overflow: "hidden",
-      opacity: kitchenDone ? 0.92 : 1,
+      opacity: 1,
       border: `2.5px solid ${visual.accent}`,
       background: visual.activeBg,
-      boxShadow: `0 0 0 3px ${visual.ring}, 0 14px 28px ${visual.shadow}`,
+      boxShadow: `0 0 0 3px ${visual.ring}, 0 12px 26px ${visual.shadow}`,
       transform: "translateY(-1px)",
-      transition: "all 0.16s ease",
+      zIndex: 5,
+      transition: "all 0.18s ease",
     };
   }
+
+  const dimStyle = hasActiveOrder
+    ? {
+        opacity: 0.64,
+        filter: "saturate(0.88)",
+        transform: "none",
+      }
+    : {
+        opacity: kitchenDone ? 0.9 : 1,
+      };
 
   return {
     ...activeTheme.style,
     position: "relative",
     overflow: "hidden",
-    opacity: kitchenDone ? 0.9 : 1,
+    ...dimStyle,
     border: isHighlightedByGroup
       ? "2.5px solid #0ea5e9"
       : isNew && !kitchenDone
@@ -667,7 +751,7 @@ function activeOrderCardStyle(order, activeTheme, flags) {
       : isNew && !kitchenDone
       ? "0 8px 18px rgba(245,158,11,0.14)"
       : "0 1px 3px rgba(0,0,0,0.08)",
-    transition: "all 0.16s ease",
+    transition: "all 0.18s ease",
   };
 }
 
@@ -675,45 +759,75 @@ function ActiveOrderRibbon({ platform, kitchenDone }) {
   const visual = platformVisual(platform, kitchenDone);
 
   return (
-    <>
-      <div
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 6,
+        background: visual.accent,
+        opacity: 0.95,
+      }}
+    />
+  );
+}
+
+function ActiveOrderPill({ platform, kitchenDone }) {
+  const visual = platformVisual(platform, kitchenDone);
+
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        height: 24,
+        padding: "0 11px",
+        borderRadius: 999,
+        background: visual.accent,
+        color: "#fff",
+        border: `1px solid ${visual.accentDark}`,
+        fontSize: 11,
+        fontWeight: 900,
+        letterSpacing: 0.2,
+        boxShadow: `0 5px 12px ${visual.shadow}`,
+        marginBottom: 7,
+        width: "fit-content",
+      }}
+    >
+      <span
         style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 7,
-          background: visual.accent,
+          width: 6,
+          height: 6,
+          borderRadius: 999,
+          background: "#fff",
+          opacity: 0.95,
         }}
       />
-      <div
-        style={{
-          position: "absolute",
-          left: 18,
-          top: 10,
-          display: "inline-flex",
-          alignItems: "center",
-          height: 24,
-          padding: "0 11px",
-          borderRadius: 999,
-          background: visual.accent,
-          color: "#fff",
-          fontSize: 11,
-          fontWeight: 900,
-          letterSpacing: 0.4,
-          boxShadow: `0 6px 14px ${visual.shadow}`,
-          zIndex: 2,
-        }}
-      >
-        {visual.label}
-      </div>
-    </>
+      {visual.label}
+    </div>
   );
 }
 
 function normalizeStatus(status) {
   if (!status) return "UNKNOWN";
   return String(status).toUpperCase();
+}
+
+function isHiddenPreOrder(status) {
+  return normalizeStatus(status) === "PRE_ORDER";
+}
+
+function isClosedOrderStatus(status) {
+  return [
+    "FINISH",
+    "COMPLETED",
+    "DONE",
+    "CANCEL",
+    "CANCELED",
+    "CANCELLED",
+  ].includes(normalizeStatus(status));
 }
 
 function statusVariant(status) {
@@ -1343,12 +1457,23 @@ function KitchenBoard({ currentProfile, onLogout }) {
       row?.id !== undefined && row?.id !== null ? String(row.id) : null;
     if (!orderId) return;
 
-    const status = String(row?.trang_thai || "").trim().toUpperCase();
-    if (
-      ["FINISH", "COMPLETED", "DONE", "CANCEL", "CANCELED", "CANCELLED"].includes(
-        status
-      )
-    ) {
+    const status = normalizeStatus(row?.trang_thai);
+
+    if (isHiddenPreOrder(status)) {
+      knownOrderIdsRef.current.add(orderId);
+
+      setOrders((prev) => {
+        const exists = prev.some((item) => String(item.id) === orderId);
+        if (exists) {
+          return prev.map((item) => (String(item.id) === orderId ? row : item));
+        }
+        return [row, ...prev];
+      });
+
+      return;
+    }
+
+    if (isClosedOrderStatus(status)) {
       return;
     }
 
@@ -1515,32 +1640,47 @@ function KitchenBoard({ currentProfile, onLogout }) {
             newRow?.id !== undefined && newRow?.id !== null
               ? String(newRow.id)
               : "";
-          const oldStatus = String(oldRow?.trang_thai || "").trim().toUpperCase();
-          const newStatus = String(newRow?.trang_thai || "").trim().toUpperCase();
+          const oldStatus = normalizeStatus(oldRow?.trang_thai);
+          const newStatus = normalizeStatus(newRow?.trang_thai);
 
-          const isActive = ![
-            "FINISH",
-            "COMPLETED",
-            "DONE",
-            "CANCEL",
-            "CANCELED",
-            "CANCELLED",
-          ].includes(newStatus);
+          const isActive = !isClosedOrderStatus(newStatus) && !isHiddenPreOrder(newStatus);
 
-          setOrders((prev) =>
-            prev.map((item) => (String(item.id) === newId ? newRow : item))
-          );
+          setOrders((prev) => {
+            const exists = prev.some((item) => String(item.id) === newId);
+            if (exists) {
+              return prev.map((item) => (String(item.id) === newId ? newRow : item));
+            }
+            return [newRow, ...prev];
+          });
+
+          if (isHiddenPreOrder(newStatus)) {
+            knownOrderIdsRef.current.add(newId);
+
+            setUnseenOrderIds((prev) => {
+              const next = prev.filter((id) => String(id) !== newId);
+              unseenOrderIdsRef.current = next;
+
+              if (next.length === 0) {
+                setNewOrderCount(0);
+                stopTitleFlash();
+                stopContinuousRinging();
+              } else {
+                setNewOrderCount(next.length);
+                startTitleFlash(next.length);
+              }
+
+              return next;
+            });
+
+            return;
+          }
 
           if (!knownOrderIdsRef.current.has(newId) && isActive) {
             await handleIncomingOrder(newRow);
             return;
           }
 
-          if (
-            ["FINISH", "COMPLETED", "DONE", "CANCEL", "CANCELED", "CANCELLED"].includes(
-              newStatus
-            )
-          ) {
+          if (isClosedOrderStatus(newStatus)) {
             setUnseenOrderIds((prev) => {
               const next = prev.filter((id) => String(id) !== newId);
               unseenOrderIdsRef.current = next;
@@ -1587,6 +1727,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
     return orders
       .map((order) => computeOrderState(order, now))
       .filter((order) => String(order.hub_id || "").trim() === currentHubId)
+      .filter((order) => !isHiddenPreOrder(order.trang_thai))
       .filter((order) => {
         const platform = String(order?.nen_tang || "").toLowerCase();
         if (platformFilter === "grab" && !platform.includes("grab")) return false;
@@ -1817,6 +1958,43 @@ function KitchenBoard({ currentProfile, onLogout }) {
   function handleDishCardToggle(orderId, dishIndex, portionIndex, isDone, qty) {
     if (pendingOrderIds[orderId]) return;
     updateDishPortion(orderId, dishIndex, portionIndex, !isDone, qty);
+  }
+
+  async function markGiftGiven(orderId, value = true) {
+    if (pendingOrderIds[orderId]) return;
+
+    const previousOrders = orders;
+    setOrderPending(orderId, true);
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        String(order.id) === String(orderId)
+          ? {
+              ...order,
+              gift_given: Boolean(value),
+            }
+          : order
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          gift_given: Boolean(value),
+        })
+        .eq("id", orderId)
+        .eq("hub_id", currentHubId);
+
+      if (error) throw error;
+    } catch (err) {
+      setOrders(previousOrders);
+      setError(err.message || "Không cập nhật được trạng thái tặng quà");
+    } finally {
+      setTimeout(() => {
+        setOrderPending(orderId, false);
+      }, 250);
+    }
   }
 
   async function markOrderDone(orderId) {
@@ -2292,6 +2470,15 @@ function KitchenBoard({ currentProfile, onLogout }) {
                     const activeTheme = completedTheme;
                     const isActiveOrder = String(activeOrderId) === String(order.id);
                     const activeVisual = platformVisual(order.nen_tang, kitchenDone);
+                    const customerRank = order.customer_rank || "🥉 Đồng";
+                    const customerTotalOrders = Number(order.customer_total_orders || 0);
+                    const customerMonthOrders = Number(order.customer_month_orders || 0);
+                    const customerTag = order.customer_tag || "";
+                    const isGiftGiven = Boolean(order.gift_given);
+                    const isGiftOrder =
+                      customerMonthOrders >= 3 ||
+                      String(customerTag).includes("TẶNG") ||
+                      String(customerTag).includes("QUÀ");
 
                     return (
                       <Card
@@ -2305,12 +2492,13 @@ function KitchenBoard({ currentProfile, onLogout }) {
                           isHighlightedByGroup,
                           isNew,
                           kitchenDone,
+                          hasActiveOrder: Boolean(activeOrderId),
                         })}
                       >
                         <CardHeader
                           style={{
                             cursor: "pointer",
-                            padding: String(activeOrderId) === String(order.id) ? "42px 14px 12px 18px" : 12,
+                            padding: isActiveOrder ? "12px 12px 12px 18px" : 12,
                           }}
                           onClick={() => {
                             const nextActiveOrderId =
@@ -2338,6 +2526,12 @@ function KitchenBoard({ currentProfile, onLogout }) {
                             }}
                           >
                             <div>
+                              {isActiveOrder ? (
+                                <ActiveOrderPill
+                                  platform={order.nen_tang}
+                                  kitchenDone={kitchenDone}
+                                />
+                              ) : null}
                               <CardTitle
                                 style={{
                                   fontSize: 22,
@@ -2432,12 +2626,71 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                 {formatPlatformOrderCode(order.nen_tang, order.ma_don_san)}
                               </span>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <Phone size={15} />
-                              <span>
-                                {order.khach_hang || "Không tên"}
-                                {order.sdt ? ` - ${order.sdt}` : ""}
-                              </span>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                                alignItems: "flex-start",
+                                minWidth: 0,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Phone size={15} />
+                                <span
+                                  style={{
+                                    fontWeight: 800,
+                                    color: "#0f172a",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {order.khach_hang || "Không tên"}
+                                  {order.sdt ? ` - ${order.sdt}` : ""}
+                                </span>
+                              </div>
+
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 6,
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Badge style={crmTagStyle(customerRank)}>
+                                  {customerRank}
+                                  {customerTotalOrders ? ` · ${customerTotalOrders} đơn` : ""}
+                                </Badge>
+
+                                {customerTag ? (
+                                  <Badge style={crmTagStyle(customerTag)}>
+                                    {customerTag}
+                                  </Badge>
+                                ) : null}
+
+                                {customerMonthOrders > 0 && !isGiftOrder ? (
+                                  <Badge
+                                    style={{
+                                      background: "#eef2ff",
+                                      color: "#3730a3",
+                                      border: "1px solid #c7d2fe",
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    Tháng này {customerMonthOrders}/3 đơn
+                                  </Badge>
+                                ) : null}
+                              </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <Clock3 size={15} />
@@ -2456,6 +2709,98 @@ function KitchenBoard({ currentProfile, onLogout }) {
                               Chờ {waitingMinutes} phút
                             </div>
                           </div>
+
+                          {isGiftOrder ? (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                marginTop: 10,
+                                marginLeft: "auto",
+                                maxWidth: 480,
+                                borderRadius: 16,
+                                padding: "12px 14px",
+                                background: isGiftGiven
+                                  ? "linear-gradient(135deg,#ecfdf5,#dcfce7)"
+                                  : "linear-gradient(135deg,#fff7ed,#ffedd5)",
+                                border: isGiftGiven
+                                  ? "2px solid #22c55e"
+                                  : "2px solid #fb923c",
+                                boxShadow: isGiftGiven
+                                  ? "0 10px 22px rgba(34,197,94,0.16)"
+                                  : "0 10px 22px rgba(251,146,60,0.18)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                }}
+                              >
+                                <div style={{ minWidth: 0 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 900,
+                                      color: isGiftGiven ? "#166534" : "#9a3412",
+                                      letterSpacing: 0.6,
+                                      marginBottom: 5,
+                                    }}
+                                  >
+                                    {isGiftGiven ? "✅ ĐÃ TẶNG QUÀ" : "🎁 QUÀ KHÁCH QUEN"}
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 22,
+                                      fontWeight: 900,
+                                      color: isGiftGiven ? "#14532d" : "#7c2d12",
+                                      lineHeight: 1.15,
+                                    }}
+                                  >
+                                    Bánh tráng tỏi bò cay cay
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      marginTop: 7,
+                                      fontSize: 13,
+                                      fontWeight: 800,
+                                      color: isGiftGiven ? "#15803d" : "#c2410c",
+                                    }}
+                                  >
+                                    Tháng này: {customerMonthOrders}/3 đơn
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={pendingOrderIds[order.id]}
+                                  onClick={() => markGiftGiven(order.id, !isGiftGiven)}
+                                  style={{
+                                    border: isGiftGiven
+                                      ? "1px solid #86efac"
+                                      : "1px solid #fb923c",
+                                    background: isGiftGiven ? "#ffffff" : "#ea580c",
+                                    color: isGiftGiven ? "#166534" : "#ffffff",
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    fontSize: 13,
+                                    fontWeight: 900,
+                                    cursor: pendingOrderIds[order.id] ? "not-allowed" : "pointer",
+                                    opacity: pendingOrderIds[order.id] ? 0.6 : 1,
+                                    whiteSpace: "nowrap",
+                                    boxShadow: isGiftGiven
+                                      ? "none"
+                                      : "0 8px 16px rgba(234,88,12,0.18)",
+                                  }}
+                                >
+                                  {isGiftGiven ? "Hoàn tác" : "Đã tặng quà"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
                         </CardHeader>
 
                         <CardContent style={{ padding: 12 }}>
@@ -2588,13 +2933,36 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                                 gap: 6,
                                               }}
                                             >
-                                              {(dish?.tuy_chon || []).map((opt, optIndex) => (
+                                              {Object.entries(
+                                                (dish?.tuy_chon || []).reduce((acc, opt) => {
+                                                  acc[opt] = (acc[opt] || 0) + 1;
+                                                  return acc;
+                                                }, {})
+                                              ).map(([opt, qty], optIndex) => (
                                                 <Badge
                                                   key={`${itemKey}-${optIndex}`}
                                                   variant="outline"
                                                   onClick={(e) => e.stopPropagation()}
+                                                  style={{
+                                                    background: "#f8fafc",
+                                                    border: "1px solid #cbd5e1",
+                                                    color: "#334155",
+                                                    gap: 5,
+                                                  }}
                                                 >
-                                                  {opt}
+                                                  <span>{opt}</span>
+                                                  <span
+                                                    style={{
+                                                      fontWeight: 900,
+                                                      color: "#0f172a",
+                                                      background: "#e2e8f0",
+                                                      borderRadius: 999,
+                                                      padding: "1px 6px",
+                                                      marginLeft: 3,
+                                                    }}
+                                                  >
+                                                    x{qty}
+                                                  </span>
                                                 </Badge>
                                               ))}
                                             </div>
