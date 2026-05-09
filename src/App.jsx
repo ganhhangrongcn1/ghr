@@ -2759,7 +2759,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                       lineHeight: 1.15,
                                     }}
                                   >
-                                    Bánh tráng tỏi bò cay cay
+                                    Bánh tráng quà tặng
                                   </div>
 
                                   <div
