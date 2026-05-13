@@ -175,8 +175,8 @@ function Separator() {
   );
 }
 
-const supabaseUrl = "https://nobemjcugpxczqtqocai.supabase.co";
-const supabaseAnonKey = "sb_publishable_7SiQ4eq7-gUorVG2OC0qxg_wKfSM3CW";
+const supabaseUrl = "https://juhquxhovlxebwhikfld.supabase.co";
+const supabaseAnonKey = "sb_publishable_O_Qx_mCR0YH60dsfsoSCCQ_Aa78nxRh";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 
