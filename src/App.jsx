@@ -913,6 +913,52 @@ function getOrderDateKey(order) {
   return `${year}-${month}-${day}`;
 }
 
+function getOrderMonthKey(order) {
+  const ts = getOrderTimeValue(order);
+  if (!ts) return "";
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getCustomerGiftKey(order) {
+  const phone = String(order?.sdt || "").replace(/\D/g, "");
+  const name = String(order?.khach_hang || "").trim().toLowerCase();
+  const customerKey = phone || name;
+  const monthKey = getOrderMonthKey(order);
+
+  if (!customerKey || !monthKey) return "";
+  return `${customerKey}__${monthKey}`;
+}
+
+function isGiftCustomerTag(tag = "") {
+  const text = String(tag || "").toUpperCase();
+  return text.includes("TẶNG") || text.includes("QUÀ") || text.includes("TANG") || text.includes("QUA");
+}
+
+function attachGiftHistoryToOrders(rows, nowTs) {
+  const computedOrders = rows.map((order) => computeOrderState(order, nowTs));
+  const giftedCustomerMonthKeys = new Set();
+
+  computedOrders.forEach((order) => {
+    if (!order?.gift_given) return;
+    const key = getCustomerGiftKey(order);
+    if (key) giftedCustomerMonthKeys.add(key);
+  });
+
+  return computedOrders.map((order) => {
+    const key = getCustomerGiftKey(order);
+    const giftAlreadyGivenThisMonth =
+      Boolean(key) && giftedCustomerMonthKeys.has(key) && !order?.gift_given;
+
+    return {
+      ...order,
+      _giftAlreadyGivenThisMonth: giftAlreadyGivenThisMonth,
+    };
+  });
+}
+
 function getTodayDateKey() {
   const d = new Date();
   const year = d.getFullYear();
@@ -1586,6 +1632,18 @@ function KitchenBoard({ currentProfile, onLogout }) {
     }
 
     let alive = true;
+    let retryTimer = null;
+    let pollingTimer = null;
+
+    function scheduleReload() {
+      if (!alive) return;
+      if (retryTimer) return;
+
+      retryTimer = setTimeout(async () => {
+        retryTimer = null;
+        await loadOrders();
+      }, 1500);
+    }
 
     async function loadOrders() {
       try {
@@ -1619,6 +1677,9 @@ function KitchenBoard({ currentProfile, onLogout }) {
     }
 
     loadOrders();
+    pollingTimer = setInterval(() => {
+      loadOrders();
+    }, 8000);
 
     const channel = supabase
       .channel("orders-realtime")
@@ -1635,6 +1696,8 @@ function KitchenBoard({ currentProfile, onLogout }) {
         async (payload) => {
           const newRow = payload?.new;
           const oldRow = payload?.old;
+          const incomingHubId = String(newRow?.hub_id || "").trim();
+          if (incomingHubId !== currentHubId) return;
 
           const newId =
             newRow?.id !== undefined && newRow?.id !== null
@@ -1701,10 +1764,24 @@ function KitchenBoard({ currentProfile, onLogout }) {
       )
       .subscribe((status) => {
         console.log("Realtime status:", status);
+
+        if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          scheduleReload();
+        }
       });
 
     return () => {
       alive = false;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+      }
       supabase.removeChannel(channel);
     };
   }, [currentHubId, soundEnabled, soundVolume]);
@@ -1724,8 +1801,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
   const filteredOrders = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return orders
-      .map((order) => computeOrderState(order, now))
+    return attachGiftHistoryToOrders(orders, now)
       .filter((order) => String(order.hub_id || "").trim() === currentHubId)
       .filter((order) => !isHiddenPreOrder(order.trang_thai))
       .filter((order) => {
@@ -2475,10 +2551,10 @@ function KitchenBoard({ currentProfile, onLogout }) {
                     const customerMonthOrders = Number(order.customer_month_orders || 0);
                     const customerTag = order.customer_tag || "";
                     const isGiftGiven = Boolean(order.gift_given);
+                    const wasGiftGivenThisMonth = Boolean(order._giftAlreadyGivenThisMonth);
                     const isGiftOrder =
-                      customerMonthOrders >= 3 ||
-                      String(customerTag).includes("TẶNG") ||
-                      String(customerTag).includes("QUÀ");
+                      !wasGiftGivenThisMonth &&
+                      (customerMonthOrders >= 3 || isGiftCustomerTag(customerTag));
 
                     return (
                       <Card
