@@ -932,11 +932,6 @@ function getCustomerGiftKey(order) {
   return `${customerKey}__${monthKey}`;
 }
 
-function isGiftCustomerTag(tag = "") {
-  const text = String(tag || "").toUpperCase();
-  return text.includes("TẶNG") || text.includes("QUÀ") || text.includes("TANG") || text.includes("QUA");
-}
-
 function attachGiftHistoryToOrders(rows, nowTs) {
   const computedOrders = rows.map((order) => computeOrderState(order, nowTs));
   const giftedCustomerMonthKeys = new Set();
@@ -2552,9 +2547,10 @@ function KitchenBoard({ currentProfile, onLogout }) {
                     const customerTag = order.customer_tag || "";
                     const isGiftGiven = Boolean(order.gift_given);
                     const wasGiftGivenThisMonth = Boolean(order._giftAlreadyGivenThisMonth);
-                    const isGiftOrder =
-                      !wasGiftGivenThisMonth &&
-                      (customerMonthOrders >= 3 || isGiftCustomerTag(customerTag));
+                    const hasReachedGiftOrder = customerMonthOrders >= 3;
+                    const giftCardGiven = isGiftGiven || wasGiftGivenThisMonth;
+                    const canToggleGift = isGiftGiven || !wasGiftGivenThisMonth;
+                    const isGiftOrder = hasReachedGiftOrder || giftCardGiven;
 
                     return (
                       <Card
@@ -2795,13 +2791,13 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                 maxWidth: 480,
                                 borderRadius: 16,
                                 padding: "12px 14px",
-                                background: isGiftGiven
+                                background: giftCardGiven
                                   ? "linear-gradient(135deg,#ecfdf5,#dcfce7)"
                                   : "linear-gradient(135deg,#fff7ed,#ffedd5)",
-                                border: isGiftGiven
+                                border: giftCardGiven
                                   ? "2px solid #22c55e"
                                   : "2px solid #fb923c",
-                                boxShadow: isGiftGiven
+                                boxShadow: giftCardGiven
                                   ? "0 10px 22px rgba(34,197,94,0.16)"
                                   : "0 10px 22px rgba(251,146,60,0.18)",
                               }}
@@ -2819,19 +2815,19 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                     style={{
                                       fontSize: 12,
                                       fontWeight: 900,
-                                      color: isGiftGiven ? "#166534" : "#9a3412",
+                                      color: giftCardGiven ? "#166534" : "#9a3412",
                                       letterSpacing: 0.6,
                                       marginBottom: 5,
                                     }}
                                   >
-                                    {isGiftGiven ? "✅ ĐÃ TẶNG QUÀ" : "🎁 QUÀ KHÁCH QUEN"}
+                                    {giftCardGiven ? "✅ ĐÃ TẶNG QUÀ" : "🎁 QUÀ KHÁCH QUEN"}
                                   </div>
 
                                   <div
                                     style={{
                                       fontSize: 22,
                                       fontWeight: 900,
-                                      color: isGiftGiven ? "#14532d" : "#7c2d12",
+                                      color: giftCardGiven ? "#14532d" : "#7c2d12",
                                       lineHeight: 1.15,
                                     }}
                                   >
@@ -2843,7 +2839,7 @@ function KitchenBoard({ currentProfile, onLogout }) {
                                       marginTop: 7,
                                       fontSize: 13,
                                       fontWeight: 800,
-                                      color: isGiftGiven ? "#15803d" : "#c2410c",
+                                      color: giftCardGiven ? "#15803d" : "#c2410c",
                                     }}
                                   >
                                     Tháng này: {customerMonthOrders}/3 đơn
@@ -2852,27 +2848,34 @@ function KitchenBoard({ currentProfile, onLogout }) {
 
                                 <button
                                   type="button"
-                                  disabled={pendingOrderIds[order.id]}
+                                  disabled={pendingOrderIds[order.id] || !canToggleGift}
                                   onClick={() => markGiftGiven(order.id, !isGiftGiven)}
                                   style={{
-                                    border: isGiftGiven
+                                    border: giftCardGiven
                                       ? "1px solid #86efac"
                                       : "1px solid #fb923c",
-                                    background: isGiftGiven ? "#ffffff" : "#ea580c",
-                                    color: isGiftGiven ? "#166534" : "#ffffff",
+                                    background: giftCardGiven ? "#ffffff" : "#ea580c",
+                                    color: giftCardGiven ? "#166534" : "#ffffff",
                                     borderRadius: 12,
                                     padding: "10px 12px",
                                     fontSize: 13,
                                     fontWeight: 900,
-                                    cursor: pendingOrderIds[order.id] ? "not-allowed" : "pointer",
-                                    opacity: pendingOrderIds[order.id] ? 0.6 : 1,
+                                    cursor:
+                                      pendingOrderIds[order.id] || !canToggleGift
+                                        ? "not-allowed"
+                                        : "pointer",
+                                    opacity: pendingOrderIds[order.id] || !canToggleGift ? 0.6 : 1,
                                     whiteSpace: "nowrap",
-                                    boxShadow: isGiftGiven
+                                    boxShadow: giftCardGiven
                                       ? "none"
                                       : "0 8px 16px rgba(234,88,12,0.18)",
                                   }}
                                 >
-                                  {isGiftGiven ? "Hoàn tác" : "Đã tặng quà"}
+                                  {isGiftGiven
+                                    ? "Hoàn tác"
+                                    : wasGiftGivenThisMonth
+                                    ? "Đã tặng rồi"
+                                    : "Đã tặng quà"}
                                 </button>
                               </div>
                             </div>
